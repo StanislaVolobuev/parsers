@@ -1,16 +1,25 @@
 import requests as re
 from bs4 import BeautifulSoup as bs
-url_prod = "https://www.e-katalog.ru/GIGABYTE-X299X-AORUS-XTREME-WATERFORCE.htm"
-# url1 = "https://www.e-katalog.ru/ATLANT-XM-4208-000.htm"
+
+# url_prod = "https://www.e-katalog.ru/GIGABYTE-X299X-AORUS-XTREME-WATERFORCE.htm"
+# url_prod ="https://www.e-katalog.ru/SAMSUNG-KVADRAT-COVER-FOR-GALAXY-NOTE20-ULTRA.htm"
+# url_prod = "https://www.e-katalog.ru/PLANTRONICS-EXPLORER-ML15.htm"
+url_prod = "https://www.e-katalog.ru/ATLANT-XM-4208-000.htm"
 
 def product(url_prod):
     prod = re.get(url_prod)
     soup = bs(prod.text, 'html.parser')
+    return soup
+
+
+def get_url_spec():
+    '''возвращает url страницы по кнопке "все характеристики"
+    '''
+    ''' проработать принимаемый аргумент'''
+    soup = product(url_prod)
     div = soup.find('div', class_="list-more-small")
-    # print(div)
     elem = str(div).split()
     str_with_url = str(elem[6])
-    # print(str_with_url, type(str_with_url))
     list_url = str_with_url.split('=')
     urll = (list_url[1] + '=' + list_url[2]).split('"')
     url_spec = urll[1]
@@ -18,70 +27,78 @@ def product(url_prod):
 
 
 def specifikations():
-    url_spec = product(url_prod)
+    '''  возвращает список характеристик и их значений
+    '''
+    ''' принимаемый аргумент
+    '''
+    url_spec = get_url_spec()
     spec = re.get(url_spec)
     soup_spec = bs(spec.content, 'html.parser')
-    # colomn = soup_spec.find_all('td', class_="\"op01\"")
     t = soup_spec.find_all(text=True)
-    print(t)
-    spec_list=[]
-    test = soup_spec.findAll('tr')
-    for i in test:
+    # /// # print(t)
+    spec_list = []
+    parameters = soup_spec.findAll('tr')
+    for i in parameters:
         td = i.findAll('td')
-        sp=[]
+        line = []
         for j in td:
-            test = j.find_all(text=True)
-            sp.append(test)
-        print('sp', sp)
+            parameter = j.find_all(text=True)
+            line.append(parameter)
+            print('line', line)
+            spec_list.append(list(line))
+            '''проработать запись в эксель построчно или создание списка'''
+    print(spec_list)
 
 
-
-
-
-    # for tag in t:
-
-        # print(tag)
-
-    '''
-    for item in items:
-        for tag in item.find_all('span'):
-            recipe_title = tag.text.strip()
-            titles.append(recipe_title)
-'''
-
-
-    # colomn_1 = soup_spec.find_all('table', cellpadding='"\"3\""')
-    # for elem in soup_spec:
-
-    #    print(elem.get_text())
-
-    # print(soup_spec.get_text())
-    # print(colomn)
 print(specifikations())
 
-'''
-#print(t, type(t))
+
+def name_product():
+    '''принимаемый аргумент
+    '''
+    soup = product(url_prod)
+    name = soup.find('h1', class_="t2 no-mobile")
+    name_text = name.findAll(text=True)
+    print(name_text)
 
 
-ppp = re.get(t)
-soup1 = bs(ppp.text, 'html.parser')
-print(soup1)
-
-'''
-'''
-https://www.e-katalog.ru/mtools/dot_output/mui_item_big_table.php?idg_=384697
-def go_to_spec():
-    url=open_spec(url1)
-    list_spec=re.get(url)
-    print(list_spec.text)
-
-print(go_to_spec())
+print(name_product())
 
 
-#for link in soup.find_all('a'):
-#    print(link.get('href'))
+def get_market_url():
+    '''
+    проработать приннимаемый аргумент,
+    во избежании двойного обращения к функции product
+    '''
+    soup = product(url_prod)
+    url_markets = soup.findAll('table', class_="desc-hot-prices")
+    price = soup.findAll('td', class_="model-shop-price")
+    price_list = []
+    for p in price:
+        p1 = str(p).split('span')
+        p2 = p1[-2]
+        p2 = p2[1:-3]
+        price_list.append(p2)
+    all_price = []
+    n_price = 0
 
-'''
+    for shop in url_markets:
+        name_shop = shop.find_all('u')
+        for i in name_shop:
+            name_and_url = []
+            st = str(i)
+            name = st[3:-4]
+            a = i.parent
+            url_shop = str(a).split('"')
+            name_and_url.append(name)
+            name_and_url.append(url_shop[9])
+            all_price.append(name_and_url)
+            n_price += 1
+
+    for i in range(0, n_price):
+        all_price[i].append(price_list[i])
+    print('list', all_price)  # отфармотировать значение цены
 
 
+# print(get_market_url())
 
