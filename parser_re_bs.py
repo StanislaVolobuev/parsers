@@ -144,7 +144,7 @@ def get_market_url(soup):
         for j in i:
             norm = ud.normalize('NFKC', j)
             line.append(norm)
-    price.append(line)
+        price.append(line)
     return price
 
 
