@@ -2,6 +2,8 @@ import requests as re
 from bs4 import BeautifulSoup as bs
 import openpyxl
 import unicodedata as ud
+from openpyxl.styles import Font
+from openpyxl.styles import Alignment
 
 
 url_prod = "https://www.e-katalog.ru/GIGABYTE-X299X-AORUS-XTREME-WATERFORCE.htm"
@@ -11,18 +13,20 @@ url_prod = "https://www.e-katalog.ru/GIGABYTE-X299X-AORUS-XTREME-WATERFORCE.htm"
 # url_prod = "https://www.e-katalog.ru/PLANTRONICS-EXPLORER-ML15.htm"
 # url_prod = "https://www.e-katalog.ru/ATLANT-XM-4208-000.htm"
 
-def product(url_prod):
-    ''' Совершает запрос по ссылке на продукт,
+def product(url_produkt):
+    """
+    Совершает запрос по ссылке на продукт,
      возвращает объект супа
-    '''
-    prod = re.get(url_prod)
+    """
+    prod = re.get(url_produkt)
     soup = bs(prod.text, 'html.parser')
     return soup
 
 
 def get_url_spec(soup):
-    '''возвращает url страницы по кнопке "все характеристики"
-    '''
+    """
+    возвращает url страницы по кнопке "все характеристики"
+    """
     div = soup.find('div', class_="list-more-small")
     elem = str(div).split()
     str_with_url = str(elem[6])
@@ -32,9 +36,10 @@ def get_url_spec(soup):
     return url_spec
 
 
-def specifikations(url_specification):
-    '''  возвращает список характеристик и их значений
-    '''
+def specifications(url_specification):
+    """
+    возвращает список характеристик и их значений
+    """
     spec = re.get(url_specification)
     soup_spec = bs(spec.content, 'html.parser')
     spec_dict = dict()
@@ -66,9 +71,10 @@ def specifikations(url_specification):
 
 
 def name_product(soup):
-    '''принимаемает суп страницы продукта,
+    """
+    принимаемает суп страницы продукта,
     возвращает имя продукта
-    '''
+    """
     name = soup.find('h1', class_="t2 no-mobile")
     name_ = name.findAll(text=True)
     name_text = str()
@@ -79,10 +85,10 @@ def name_product(soup):
 
 
 def only_shop(soup):
-    '''
+    """
      парсит имя, url и цену магазина в случае, если
     магазин в каталоге только один
-    '''
+    """
     block_name = soup.findAll('div', class_="wb-s-desc")
     url_name = str(block_name).split('"')
     url = url_name[15]
@@ -92,19 +98,16 @@ def only_shop(soup):
     price = str(price_block).split('span')[5].split('>')[1][0:-2]
 
     price_only_shop = []
-    list_price = []
-    list_price.append(name)
-    list_price.append(url)
-    list_price.append(price)
+    list_price = [name, url, price]
     print(list_price[2])
     price_only_shop.append(list_price)
     return price_only_shop
 
 
 def get_market_url(soup):
-    '''
+    """
     Принимает суп и возвращает спиок интернет-магазинов, url и цены
-    '''
+    """
     url_markets = soup.findAll('table', class_="desc-hot-prices")
     price = soup.findAll('td', class_="model-shop-price")
     price_list = []
@@ -137,32 +140,38 @@ def get_market_url(soup):
 
     price = []
     for i in all_price:
-        shop = []
+        line = []
         for j in i:
             norm = ud.normalize('NFKC', j)
-            shop.append(norm)
-    price.append(shop)
+            line.append(norm)
+    price.append(line)
     return price
 
 
-def open_exel(name_prod, spec_dict, market_list):
-    ''' Запись полученных данных в эксель, на двух страницах:
+def open_excel(name_prod, spec_dict, market_list):
+    """
+    Запись полученных данных в эксель, на двух страницах:
     1) список характеристик
     2) список интернет магазинов.
     Файл сохраняется под именем продукта
-    '''
+    """
     wb = openpyxl.Workbook()
     wb.create_sheet(title='характеристики', index=0)
     sheet_spec = wb['характеристики']
     head = sheet_spec.cell(row=1, column=1)
     head.value = name_prod
 
-    for row, key in zip(range(2, len(spec_dict) + 2), range(1, len(spec_dict) + 1)):
+    for row, key in zip(range(2, len(spec_dict) + 2), range(1, len(spec_dict))):
+        if len(spec_dict[key]) == 1:
+            sheet_spec.merge_cells('A' + str(row) + ':' + 'B' + str(row))
+            sheet_spec['A' + str(row)].font = Font(bold=True)
+            sheet_spec['A' + str(row)].alignment = Alignment(horizontal='center')
         for col, spec in zip(range(1, 3), range(0, len(spec_dict[key]))):
             cell = sheet_spec.cell(row=row, column=col)
             cell.value = spec_dict[key][spec]
 
     sheet_spec.column_dimensions['A'].width = 45
+    sheet_spec.column_dimensions['B'].width = 35
 
     wb.create_sheet(title='магазины', index=1)
     sheet_shop = wb['магазины']
@@ -181,13 +190,13 @@ def open_exel(name_prod, spec_dict, market_list):
 def main():
     soup = product(url_prod)
     url_specification = get_url_spec(soup)
-    spec_dict = specifikations(url_specification)
+    spec_dict = specifications(url_specification)
     name_prod = name_product(soup)
     market_list = get_market_url(soup)
     print('name\n', name_prod)
     print('характеристики\n', spec_dict)
     print('магазины\n', market_list)
-    open_exel(name_prod, spec_dict, market_list)
+    open_excel(name_prod, spec_dict, market_list)
 
 
 if __name__ == '__main__':
